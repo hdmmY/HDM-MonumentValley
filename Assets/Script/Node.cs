@@ -8,6 +8,7 @@ public class Node : MonoBehaviour
     [SerializeField]
     private Camera _camera;
 
+    #region public properties         
     // The node's position in camera space
     public Vector3 CameraSpacePosition
     {
@@ -36,7 +37,7 @@ public class Node : MonoBehaviour
             }
             return new Vector3(position.x, 0, position.z);
         }
-    }                               
+    }
 
 
     // The node's depth in camera space
@@ -48,7 +49,192 @@ public class Node : MonoBehaviour
         }
     }
 
+    public Vector3 Centre
+    {
+        get
+        {
+            return transform.position;
+        }
+    }
 
+    public Vector3 Up
+    {
+        get
+        {
+            return transform.position + transform.up * 0.5f;
+        }
+    }
+
+    public Vector3 Down
+    {
+        get
+        {
+            return transform.position - transform.up * 0.5f;
+        }
+    }
+
+    public Vector3 Right
+    {
+        get
+        {
+            return transform.position + transform.right * 0.5f;
+        }
+    }
+
+    public Vector3 Left
+    {
+        get
+        {
+            return transform.position - transform.right * 0.5f;
+        }
+    }
+
+    public Vector3 Forward
+    {
+        get
+        {
+            return transform.position + transform.forward * 0.5f;
+        }
+    }
+
+    public Vector3 Back
+    {
+        get
+        {
+            return transform.position - transform.forward * 0.5f;
+        }
+    }
+
+    public Vector3 UpperX
+    {
+        get
+        {
+            return transform.position + (transform.up + transform.right) * 0.5f;
+        }
+    }
+
+    public Vector3 UpperNX
+    {
+        get
+        {
+            return transform.position + (transform.up - transform.right) * 0.5f;
+        }
+    }
+
+    public Vector3 UpperZ
+    {
+        get
+        {
+            return transform.position + (transform.up + transform.forward) * 0.5f;
+        }
+    }
+
+    public Vector3 UpperNZ
+    {
+        get
+        {
+            return transform.position + (transform.up - transform.forward) * 0.5f;
+        }
+    }
+
+    public Vector3 MiddleXNZ
+    {
+        get
+        {
+            return transform.position + (transform.right - transform.forward) * 0.5f;
+        }
+    }
+
+    public Vector3 MiddleXZ
+    {
+        get
+        {
+            return transform.position + (transform.right + transform.forward) * 0.5f;
+        }
+    }
+
+    public Vector3 MiddleNXNZ
+    {
+        get
+        {
+            return transform.position - (transform.right + transform.forward) * 0.5f;
+        }
+    }
+
+    public Vector3 MiddleNXZ
+    {
+        get
+        {
+            return transform.position + (transform.forward - transform.right) * 0.5f;
+        }
+    }
+
+    public Vector3 DownX
+    {
+        get
+        {
+            return transform.position + (transform.right - transform.up) * 0.5f;
+        }
+    }
+
+    public Vector3 DownNX
+    {
+        get
+        {
+            return transform.position - (transform.right + transform.up) * 0.5f;
+        }
+    }
+
+    public Vector3 DownZ
+    {
+        get
+        {
+            return transform.position + (transform.forward - transform.up) * 0.5f;
+        }
+    }
+
+    public Vector3 DownNZ
+    {
+        get
+        {
+            return transform.position - (transform.forward + transform.up) * 0.5f;
+        }
+    }
+
+    /// <summary>
+    /// Contain all node's poins for iterator
+    /// </summary>
+    private Dictionary<string, Vector3> PointsIterator
+    {
+        get
+        {
+            var result = new Dictionary<string, Vector3>();
+            result.Add("Up", Up);
+            result.Add("Down", Down);
+            result.Add("Left", Left);
+            result.Add("Right", Right);
+            result.Add("Forward", Forward);
+            result.Add("Back", Back);
+            result.Add("UpperX", UpperX);
+            result.Add("UpperNX", UpperNX);
+            result.Add("UpperZ", UpperZ);
+            result.Add("UpperNZ", UpperNZ);
+            result.Add("MiddleXZ", MiddleXZ);
+            result.Add("MiddleNXZ", MiddleNXZ);
+            result.Add("MiddleXNZ", MiddleXNZ);
+            result.Add("MiddleNXNZ", MiddleNXNZ);
+            result.Add("DownX", DownX);
+            result.Add("DownNX", DownNX);
+            result.Add("DownZ", DownZ);
+            result.Add("DownNZ", DownNZ);
+            return result;
+        }
+    }
+
+    #endregion
+
+
+    #region public variables
     [System.Flags]
     public enum WalkableAxis
     {
@@ -89,9 +275,12 @@ public class Node : MonoBehaviour
     };
     [HideInInspector] public NodeType m_nodeType;
 
-   
-    public Dictionary<ConnecPoint, Dictionary<Node, ConnecPoint>> m_adjNodes;
 
+    public Dictionary<ConnecPoint, Dictionary<Node, ConnecPoint>> m_adjNodes;
+    #endregion
+
+
+    #region Public method
     public void AutoFindAdjPoint()
     {
         if ((WalkableAxis.Up & m_walkableAxis) == WalkableAxis.Up)
@@ -102,8 +291,10 @@ public class Node : MonoBehaviour
             SetAdj(ConnecPoint.Upper_NZ, CastAdjRay(WalkableAxis.Back, WalkableAxis.Up));
         }
     }
+    #endregion
 
 
+    #region Private connect method
     /// <summary>
     /// Check the adj node that walkable
     /// </summary>
@@ -149,7 +340,6 @@ public class Node : MonoBehaviour
             {
                 ConnecPoint adjConnec = CheckUpWalkable(node, adjNodePos);
                 if (adjConnec != 0) result.Add(new AdjNode(adjConnec, node));
-                //Debug.Log(this.name + "   " + node.name + "    " + adjConnec);
             }
             return result;
         }
@@ -199,29 +389,7 @@ public class Node : MonoBehaviour
     }
 
 
-    // Transform world position into 2D screen position. 
-    // (x_0, y_0, z_0) => (x, 0, z)
-    private Vector3 WorldToScreen(Vector3 worldPosition)
-    {
-        int intY = Mathf.Abs((int)worldPosition.y);
-        for (int i = 0; i < intY; i++)
-        {
-            worldPosition.x += Mathf.Sign(worldPosition.y);
-            worldPosition.z += Mathf.Sign(worldPosition.y);
-        }
-        return new Vector3(worldPosition.x, 0, worldPosition.z);
-    }
 
-
-    private void Start()
-    {
-        m_adjNodes = new Dictionary<ConnecPoint, Dictionary<Node, ConnecPoint>>();
-        foreach (ConnecPoint connecPointType in System.Enum.GetValues(typeof(ConnecPoint)))
-        {
-            m_adjNodes.Add(connecPointType, new Dictionary<Node, ConnecPoint>());
-        }
-
-    }
 
     // Set m_adjPoint
     private void SetAdj(ConnecPoint connecType, List<AdjNode> adjNodes)
@@ -240,7 +408,21 @@ public class Node : MonoBehaviour
             m_adjNodes[connecType][adjNodeToAdd.m_adjNode] = adjNodeToAdd.m_adjNodeConnecPoint;
         }
     }
+    #endregion
 
+    #region Tools
+    // Transform world position into 2D screen position. 
+    // (x_0, y_0, z_0) => (x, 0, z)
+    private Vector3 WorldToScreen(Vector3 worldPosition)
+    {
+        int intY = Mathf.Abs((int)worldPosition.y);
+        for (int i = 0; i < intY; i++)
+        {
+            worldPosition.x += Mathf.Sign(worldPosition.y);
+            worldPosition.z += Mathf.Sign(worldPosition.y);
+        }
+        return new Vector3(worldPosition.x, 0, worldPosition.z);
+    }
 
     // Since unity don't have System.Enum.HasFlag method,
     // so I make a simple version of this method.
@@ -249,68 +431,85 @@ public class Node : MonoBehaviour
         return ((value & flag) == 1) ? true : false;
     }
 
-    private float nextTime = 0;
-    private void Update()
-    {
-        if (Time.time > nextTime)
-        {
-            AutoFindAdjPoint();
-            nextTime = Time.time + 2f;
-            Debug.Log("Update");
-        }
-    }
 
+    /// <summary>
+    /// Get a node's adjpoint in world space
+    /// </summary>
+    /// <param name="node"></param>
+    /// <param name="adjType"></param>
+    /// <returns></returns>
+    private Vector3 GetAdjPointPosInWorld(Node node, ConnecPoint adjType)
+    {
+        if (adjType == ConnecPoint.Upper_X)
+            return node.UpperX;
+        if (adjType == ConnecPoint.Upper_Z)
+            return node.UpperZ;
+        if (adjType == ConnecPoint.Upper_NX)
+            return node.UpperNX;
+        if (adjType == ConnecPoint.Upper_NZ)
+            return node.UpperNZ;
+        if (adjType == ConnecPoint.Middle_NXNZ)
+            return node.MiddleNXNZ;
+        if (adjType == ConnecPoint.Middle_NXZ)
+            return node.MiddleNXZ;
+        if (adjType == ConnecPoint.Middle_XNZ)
+            return node.MiddleXNZ;
+        if (adjType == ConnecPoint.Middle_XZ)
+            return node.MiddleXZ;
+        if (adjType == ConnecPoint.Down_X)
+            return node.DownX;
+        if (adjType == ConnecPoint.Down_Z)
+            return node.DownZ;
+        if (adjType == ConnecPoint.Down_NX)
+            return node.DownNX;
+        if (adjType == ConnecPoint.Down_NZ)
+            return node.DownNZ;
+
+        return Vector3.zero;
+    }
 
     private void OnDrawGizmos()
     {
-        Vector3 centre = transform.position;
-        Vector3 up = centre + transform.up * 0.51f;
-        Vector3 down = centre + transform.up * (-1) * 0.51f;
-        Vector3 right = centre + transform.right * 0.51f;
-        Vector3 left = centre + transform.right * (-1) * 0.51f;
-        Vector3 forward = centre + transform.forward * 0.51f;
-        Vector3 back = centre + transform.forward * (-1) * 0.51f;
-
         float sphereSize = 0.15f;
         float cubeSize = 0.12f;
 
         // Draw the walkable node
         Gizmos.color = Color.blue;
-        if ((WalkableAxis.Up & m_walkableAxis) == WalkableAxis.Up)
+        if (HasFlag((int)m_walkableAxis, (int)WalkableAxis.Up))
         {
-            Gizmos.DrawSphere(up, sphereSize);
-            Gizmos.DrawLine(up - transform.right * 0.5f, up + transform.right * 0.5f);
-            Gizmos.DrawLine(up - transform.forward * 0.5f, up + transform.forward * 0.5f);
+            Gizmos.DrawSphere(Up, sphereSize);
+            Gizmos.DrawLine(UpperX, UpperNX);
+            Gizmos.DrawLine(UpperZ, UpperNZ);
         }
-        if ((WalkableAxis.Down & m_walkableAxis) == WalkableAxis.Down)
+        if (HasFlag((int)m_walkableAxis, (int)WalkableAxis.Down))
         {
-            Gizmos.DrawSphere(down, sphereSize);
-            Gizmos.DrawLine(down - transform.right * 0.5f, down + transform.right * 0.5f);
-            Gizmos.DrawLine(down - transform.forward * 0.5f, down + transform.forward * 0.5f);
+            Gizmos.DrawSphere(Down, sphereSize);
+            Gizmos.DrawLine(DownX, DownNZ);
+            Gizmos.DrawLine(DownZ, DownNZ);
         }
-        if ((WalkableAxis.Right & m_walkableAxis) == WalkableAxis.Right)
+        if (HasFlag((int)m_walkableAxis, (int)WalkableAxis.Right))
         {
-            Gizmos.DrawSphere(right, sphereSize);
-            Gizmos.DrawLine(right - transform.up * 0.5f, right + transform.up * 0.5f);
-            Gizmos.DrawLine(right - transform.forward * 0.5f, right + transform.forward * 0.5f);
+            Gizmos.DrawSphere(Right, sphereSize);
+            Gizmos.DrawLine(MiddleXZ, MiddleXNZ);
+            Gizmos.DrawLine(UpperX, DownX);
         }
-        if ((WalkableAxis.Left & m_walkableAxis) == WalkableAxis.Left)
+        if (HasFlag((int)m_walkableAxis, (int)WalkableAxis.Left))
         {
-            Gizmos.DrawSphere(left, sphereSize);
-            Gizmos.DrawLine(left - transform.up * 0.5f, left + transform.up * 0.5f);
-            Gizmos.DrawLine(left - transform.forward * 0.5f, left + transform.forward * 0.5f);
+            Gizmos.DrawSphere(Left, sphereSize);
+            Gizmos.DrawLine(MiddleNXZ, MiddleNXNZ);
+            Gizmos.DrawLine(UpperNX, DownNX);
         }
-        if ((WalkableAxis.Forward & m_walkableAxis) == WalkableAxis.Forward)
+        if (HasFlag((int)m_walkableAxis, (int)WalkableAxis.Forward))
         {
-            Gizmos.DrawSphere(forward, sphereSize);
-            Gizmos.DrawLine(forward - transform.up * 0.5f, forward + transform.up * 0.5f);
-            Gizmos.DrawLine(forward - transform.right * 0.5f, forward + transform.right * 0.5f);
+            Gizmos.DrawSphere(Forward, sphereSize);
+            Gizmos.DrawLine(MiddleXZ, MiddleNXZ);
+            Gizmos.DrawLine(UpperZ, DownZ);
         }
-        if ((WalkableAxis.Back & m_walkableAxis) == WalkableAxis.Back)
+        if (HasFlag((int)m_walkableAxis, (int)WalkableAxis.Back))
         {
-            Gizmos.DrawSphere(back, sphereSize);
-            Gizmos.DrawLine(back - transform.up * 0.5f, back + transform.up * 0.5f);
-            Gizmos.DrawLine(back - transform.right * 0.5f, back + transform.right * 0.5f);
+            Gizmos.DrawSphere(Back, sphereSize);
+            Gizmos.DrawLine(MiddleXNZ, MiddleNXNZ);
+            Gizmos.DrawLine(UpperNZ, DownNZ);
         }
 
 
@@ -336,44 +535,48 @@ public class Node : MonoBehaviour
             }
         }
     }
+    #endregion
 
 
-    Vector3 GetAdjPointPosInWorld(Node node, ConnecPoint adjType)
+    // Init anchor child for path find
+    private void InitAnchor()
     {
-        Vector3 centre = node.transform.position;
-        Vector3 up = centre + node.transform.up * 0.51f;
-        Vector3 down = centre + node.transform.up * (-1) * 0.51f;
-        Vector3 right = centre + node.transform.right * 0.51f;
-        Vector3 left = centre + node.transform.right * (-1) * 0.51f;
-        Vector3 forward = centre + node.transform.forward * 0.51f;
-        Vector3 back = centre + node.transform.forward * (-1) * 0.51f;
+        GameObject temple = new GameObject();
+        temple.transform.rotation = Quaternion.identity;
 
-        if (adjType == ConnecPoint.Upper_X)
-            return up + node.transform.right * 0.5f;
-        if (adjType == ConnecPoint.Upper_Z)
-            return up + node.transform.forward * 0.5f;
-        if (adjType == ConnecPoint.Upper_NX)
-            return up - node.transform.right * 0.5f;
-        if (adjType == ConnecPoint.Upper_NZ)
-            return up - node.transform.forward * 0.5f;
-        if (adjType == ConnecPoint.Middle_NXNZ)
-            return centre - node.transform.right * 0.5f - node.transform.forward * 0.5f;
-        if (adjType == ConnecPoint.Middle_NXZ)
-            return centre - node.transform.right * 0.5f + node.transform.forward * 0.5f;
-        if (adjType == ConnecPoint.Middle_XNZ)
-            return centre + node.transform.right * 0.5f - node.transform.forward * 0.5f;
-        if (adjType == ConnecPoint.Middle_XZ)
-            return centre + node.transform.right * 0.5f + node.transform.forward * 0.5f;
-        if (adjType == ConnecPoint.Down_X)
-            return down + node.transform.right * 0.5f;
-        if (adjType == ConnecPoint.Down_Z)
-            return down + node.transform.forward * 0.5f;
-        if (adjType == ConnecPoint.Down_NX)
-            return down - node.transform.right * 0.5f;
-        if (adjType == ConnecPoint.Down_NZ)
-            return down - node.transform.forward * 0.5f;
+        foreach (var point in PointsIterator)
+        {
+            var go = Instantiate(temple, transform);
+            go.transform.position = point.Value;
+            go.name = point.Key;
+        }
+        Destroy(temple);
+        
+        m_hasInitAnchor = true;
+    }
 
-        return Vector3.zero;
+    public bool m_hasInitAnchor = false;
+    private void Start()
+    {
+        m_adjNodes = new Dictionary<ConnecPoint, Dictionary<Node, ConnecPoint>>();
+        foreach (ConnecPoint connecPointType in System.Enum.GetValues(typeof(ConnecPoint)))
+        {
+            m_adjNodes.Add(connecPointType, new Dictionary<Node, ConnecPoint>());
+        }
+
+        if(m_hasInitAnchor == false && m_walkableAxis != 0)
+            InitAnchor();
+    }
+
+    private float nextTime = 0;
+    private void Update()
+    {
+        if (Time.time > nextTime)
+        {
+            AutoFindAdjPoint();
+            nextTime = Time.time + 2f;
+            Debug.Log("Update");
+        }
     }
 
 
