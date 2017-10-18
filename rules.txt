@@ -1,0 +1,15 @@
+origin.y+ 可以行走
+	left：	
+		left：.y+ 可以走 && (left：.y >= origin.y || left：.special_sime_cube || origin.special_sime_cube)	
+		连接上的是 UpperX
+	right:	
+		right.y+ 可以走 && (right.y <= origin.y || right.special_sime_cube || origin.special_sime_cube)	
+		连接上的是 UpperNX
+	back:	
+		back.y+ 可以走 && (back.y >= origin.y || back.special_sime_cube || origin.special_sime_cube)
+		连接上的是 UpperZ
+	forward:
+		forward.y+ 可以走 && (forward.y <= origin.y || forward.special_sime_cube || origin.special_sime_cube)
+		连接上的是 UpperNZ
+
+orgin.x- 可以行走
