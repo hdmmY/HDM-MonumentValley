@@ -8,6 +8,8 @@ public class Node : MonoBehaviour
     [SerializeField]
     private Camera _camera;
 
+    private Dictionary<string, Transform> _childTransform;
+
     #region public properties         
     // The node's position in camera space
     public Vector3 CameraSpacePosition
@@ -264,24 +266,23 @@ public class Node : MonoBehaviour
             result.Add("Right", Right);
             result.Add("Forward", Forward);
             result.Add("Back", Back);
-            result.Add("UpperX", UpperX);
-            result.Add("UpperNX", UpperNX);
-            result.Add("UpperZ", UpperZ);
-            result.Add("UpperNZ", UpperNZ);
-            result.Add("MiddleXZ", MiddleXZ);
-            result.Add("MiddleNXZ", MiddleNXZ);
-            result.Add("MiddleXNZ", MiddleXNZ);
-            result.Add("MiddleNXNZ", MiddleNXNZ);
-            result.Add("DownX", DownX);
-            result.Add("DownNX", DownNX);
-            result.Add("DownZ", DownZ);
-            result.Add("DownNZ", DownNZ);
+            result.Add("Upper_X", UpperX);
+            result.Add("Upper_NX", UpperNX);
+            result.Add("Upper_Z", UpperZ);
+            result.Add("Upper_NZ", UpperNZ);
+            result.Add("Middle_XZ", MiddleXZ);
+            result.Add("Middle_NXZ", MiddleNXZ);
+            result.Add("Middle_XNZ", MiddleXNZ);
+            result.Add("Middle_NXNZ", MiddleNXNZ);
+            result.Add("Down_X", DownX);
+            result.Add("Down_NX", DownNX);
+            result.Add("Down_Z", DownZ);
+            result.Add("Down_NZ", DownNZ);
             return result;
         }
     }
 
     #endregion
-
 
     #region public variables
     [System.Flags]
@@ -325,14 +326,13 @@ public class Node : MonoBehaviour
     [HideInInspector] public NodeType m_nodeType;
 
 
-    public Dictionary<ConnecPoint, List<AdjNode>> m_adjNodes;
+    public Dictionary<ConnecPoint, List<AdjNodeInfo>> m_adjNodes;
     #endregion
-
 
     #region Public method
     public void AutoFindAdjPoint()
     {
-        foreach(var adjPair in m_adjNodes)
+        foreach (var adjPair in m_adjNodes)
         {
             adjPair.Value.Clear();
         }
@@ -346,6 +346,38 @@ public class Node : MonoBehaviour
         }
     }
 
+
+    public Transform FindConnectTrans(Node ajdNode)
+    {
+        foreach (var adjNodeInfos in m_adjNodes.Values)
+        {
+            foreach (var adjNodeInfo in adjNodeInfos)
+            {
+                if (adjNodeInfo.m_adjNode == ajdNode)
+                {
+                    return _childTransform[adjNodeInfo.m_adjNodeConnecPoint.ToString()];
+                }
+            }
+        }
+
+        return null;
+    }
+
+    public Transform GetTransByName(string name)
+    {
+        return _childTransform[name];
+    }
+
+    public Transform GetTransByAxis(WalkableAxis axis)
+    {
+        return _childTransform[axis.ToString()];
+    }
+
+    public Transform GetTransByConnectPoint(ConnecPoint connec)
+    {
+        return _childTransform[connec.ToString()];
+    }
+
     #endregion
 
 
@@ -356,7 +388,7 @@ public class Node : MonoBehaviour
     /// <param name="adjNodePos"> adj node to check </param>
     /// <param name="faceDir"> self node walkable face </param>
     /// <returns> adj node that walkable </returns>
-    private List<AdjNode> CastAdjRay(WalkableAxis adjNodePos, WalkableAxis walkableFace)
+    private List<AdjNodeInfo> CastAdjRay(WalkableAxis adjNodePos, WalkableAxis walkableFace)
     {
         Vector3 nodeCentre = transform.position;
         switch (adjNodePos)
@@ -386,7 +418,7 @@ public class Node : MonoBehaviour
         }
 
         // Get legal node
-        List<AdjNode> result = new List<AdjNode>();
+        List<AdjNodeInfo> result = new List<AdjNodeInfo>();
 
         // origin.y+ walkable
         if (walkableFace == WalkableAxis.Up)
@@ -394,7 +426,7 @@ public class Node : MonoBehaviour
             foreach (var node in originNodes)
             {
                 ConnecPoint adjConnec = CheckUpWalkable(node, adjNodePos);
-                if (adjConnec != 0) result.Add(new AdjNode(adjConnec, WalkableAxis.Up, node));
+                if (adjConnec != 0) result.Add(new AdjNodeInfo(adjConnec, WalkableAxis.Up, node));
             }
             return result;
         }
@@ -444,10 +476,8 @@ public class Node : MonoBehaviour
     }
 
 
-
-
     // Set m_adjPoint
-    private void SetAdj(ConnecPoint connecType, List<AdjNode> adjNodes)
+    private void SetAdj(ConnecPoint connecType, List<AdjNodeInfo> adjNodes)
     {
         // Delete adjPoint
         if (adjNodes == null || adjNodes.Count == 0)
@@ -458,7 +488,7 @@ public class Node : MonoBehaviour
         }
 
         _adjPoints |= connecType;  // Add adjPoint
-        foreach (AdjNode adjNodeToAdd in adjNodes)
+        foreach (AdjNodeInfo adjNodeToAdd in adjNodes)
         {
             if (!m_adjNodes[connecType].Contains(adjNodeToAdd))
             {
@@ -530,7 +560,7 @@ public class Node : MonoBehaviour
     /// <summary>
     /// Get the connect point in specific walk axis
     /// </summary>                
-    public static Node.ConnecPoint[] GetConnectTypeOnFace(Node.WalkableAxis face)
+    public static ConnecPoint[] GetConnectTypeOnFace(Node.WalkableAxis face)
     {
         if (face == Node.WalkableAxis.Up)
         {
@@ -604,7 +634,7 @@ public class Node : MonoBehaviour
     /// <summary>
     /// Get the connect point in specific walk axis
     /// </summary>    
-    public static Node.ConnecPoint[] GetConnectTypeOnFace(string faceName)
+    public static ConnecPoint[] GetConnectTypeOnFace(string faceName)
     {
         faceName = faceName.ToLower();
 
@@ -624,12 +654,30 @@ public class Node : MonoBehaviour
         return null;
     }
 
+    /// <summary>
+    /// Get the walk axis by its name
+    /// </summary>           
+    public static WalkableAxis GetWalkAxisByName(string name)
+    {
+        name = name.ToLower();
+
+        if (name == "up") return WalkableAxis.Up;
+        if (name == "down") return WalkableAxis.Down;
+        if (name == "left") return WalkableAxis.Left;
+        if (name == "right") return WalkableAxis.Right;
+        if (name == "forward") return WalkableAxis.Forward;
+        if (name == "back") return WalkableAxis.Back;
+
+        return 0;
+    }
     #endregion
 
 
     // Init anchor child for path find
     private void InitAnchor()
     {
+        _childTransform = new Dictionary<string, Transform>();
+
         GameObject temple = new GameObject();
         temple.transform.rotation = Quaternion.identity;
 
@@ -638,6 +686,7 @@ public class Node : MonoBehaviour
             var go = Instantiate(temple, transform);
             go.transform.position = point.Value;
             go.name = point.Key;
+            _childTransform.Add(go.name, go.transform);
         }
         Destroy(temple);
 
@@ -647,10 +696,10 @@ public class Node : MonoBehaviour
     public bool m_hasInitAnchor = false;
     private void Start()
     {
-        m_adjNodes = new Dictionary<ConnecPoint, List<AdjNode>>();
+        m_adjNodes = new Dictionary<ConnecPoint, List<AdjNodeInfo>>();
         foreach (ConnecPoint connecPointType in System.Enum.GetValues(typeof(ConnecPoint)))
         {
-            m_adjNodes.Add(connecPointType, new List<AdjNode>());
+            m_adjNodes.Add(connecPointType, new List<AdjNodeInfo>());
         }
 
         if (m_hasInitAnchor == false && m_walkableAxis != 0)
@@ -740,13 +789,13 @@ public class Node : MonoBehaviour
 
 
     // Define the adjcent node property
-    public class AdjNode
+    public class AdjNodeInfo
     {
         public ConnecPoint m_adjNodeConnecPoint;
         public WalkableAxis m_adjWalkAxis;
         public Node m_adjNode;
 
-        public AdjNode(ConnecPoint adjConnecPoint, WalkableAxis adjWalkAxis, Node adjNode)
+        public AdjNodeInfo(ConnecPoint adjConnecPoint, WalkableAxis adjWalkAxis, Node adjNode)
         {
             m_adjNodeConnecPoint = adjConnecPoint;
             m_adjWalkAxis = adjWalkAxis;
@@ -755,9 +804,10 @@ public class Node : MonoBehaviour
 
         public override bool Equals(object obj)
         {
-            return (((AdjNode)obj).m_adjNodeConnecPoint == m_adjNodeConnecPoint) &&
-                   (((AdjNode)obj).m_adjNode == m_adjNode) &&
-                   (((AdjNode)obj).m_adjWalkAxis == m_adjWalkAxis);
+            AdjNodeInfo info = (AdjNodeInfo)obj;
+            return (info.m_adjNodeConnecPoint == m_adjNodeConnecPoint) &&
+                   (info.m_adjNode == m_adjNode) &&
+                   (info.m_adjWalkAxis == m_adjWalkAxis);
         }
     }
 
