@@ -3,7 +3,6 @@ using UnityEditor;
 using System.Collections;
 using System.Collections.Generic;
 
-[CanEditMultipleObjects]
 [CustomEditor(typeof(Node))]
 public class NodeEditor : Editor
 {
@@ -28,24 +27,25 @@ public class NodeEditor : Editor
                         ("WakableAxis", nodeScript.m_walkableAxis);
 
         EditorGUILayout.Space();
+        EditorGUILayout.Space();
 
 
         // Display nodes that connected to
-        System.Array adjPoints = System.Enum.GetValues(typeof(Node.ConnecPoint));
-        foreach (Node.ConnecPoint connectType in adjPoints)
+        foreach (Node.ConnecPoint connectType in System.Enum.GetValues(typeof(Node.ConnecPoint)))
         {
-            EditorGUILayout.LabelField(connectType.ToString());
+            EditorGUILayout.EnumMaskField("selfAdjConnect", connectType);
 
             if (nodeScript.m_adjNodes == null) continue;
             if (nodeScript.m_adjNodes[connectType] == null) continue;
-
+            //if (nodeScript.m_adjNodes[connectType].Count == 0) continue;
+            
             EditorGUI.indentLevel++;
             foreach (var adjNode in nodeScript.m_adjNodes[connectType])
             {
-                EditorGUILayout.BeginHorizontal();
-                EditorGUILayout.TextField(adjNode.Value.ToString());
-                EditorGUILayout.ObjectField(adjNode.Key, typeof(Node), true);
-                EditorGUILayout.EndHorizontal();
+                EditorGUILayout.ObjectField("adjNode", adjNode.m_adjNode, typeof(Node), true);
+                EditorGUILayout.EnumMaskField("adjConnect", adjNode.m_adjNodeConnecPoint);
+                EditorGUILayout.EnumMaskField("adjWalkAxis", adjNode.m_adjWalkAxis);
+                EditorGUILayout.Space();
             }
             EditorGUI.indentLevel--;
         }

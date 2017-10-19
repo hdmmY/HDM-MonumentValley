@@ -201,6 +201,55 @@ public class Node : MonoBehaviour
         }
     }
 
+    public bool UpWalkable
+    {
+        get
+        {
+            return HasFlag((int)m_walkableAxis, (int)WalkableAxis.Up);
+        }
+    }
+
+    public bool DownWalkable
+    {
+        get
+        {
+            return HasFlag((int)m_walkableAxis, (int)WalkableAxis.Down);
+        }
+    }
+
+    public bool LeftWalkable
+    {
+        get
+        {
+            return HasFlag((int)m_walkableAxis, (int)WalkableAxis.Left);
+        }
+    }
+
+    public bool RightWalkable
+    {
+        get
+        {
+            return HasFlag((int)m_walkableAxis, (int)WalkableAxis.Right);
+        }
+    }
+
+    public bool ForwardWalkable
+    {
+        get
+        {
+            return HasFlag((int)m_walkableAxis, (int)WalkableAxis.Forward);
+        }
+    }
+
+    public bool BackWalkable
+    {
+        get
+        {
+            return HasFlag((int)m_walkableAxis, (int)WalkableAxis.Back);
+        }
+    }
+
+
     /// <summary>
     /// Contain all node's poins for iterator
     /// </summary>
@@ -276,13 +325,18 @@ public class Node : MonoBehaviour
     [HideInInspector] public NodeType m_nodeType;
 
 
-    public Dictionary<ConnecPoint, Dictionary<Node, ConnecPoint>> m_adjNodes;
+    public Dictionary<ConnecPoint, List<AdjNode>> m_adjNodes;
     #endregion
 
 
     #region Public method
     public void AutoFindAdjPoint()
     {
+        foreach(var adjPair in m_adjNodes)
+        {
+            adjPair.Value.Clear();
+        }
+
         if ((WalkableAxis.Up & m_walkableAxis) == WalkableAxis.Up)
         {
             SetAdj(ConnecPoint.Upper_X, CastAdjRay(WalkableAxis.Right, WalkableAxis.Up));
@@ -291,6 +345,7 @@ public class Node : MonoBehaviour
             SetAdj(ConnecPoint.Upper_NZ, CastAdjRay(WalkableAxis.Back, WalkableAxis.Up));
         }
     }
+
     #endregion
 
 
@@ -323,7 +378,7 @@ public class Node : MonoBehaviour
         {
             Node nodeCompn = hitInfo.collider.GetComponent<Node>();
             if (nodeCompn == null) continue;
-            if ((nodeCompn.m_walkableAxis & walkableFace) == walkableFace &&
+            if (HasFlag((int)nodeCompn.m_walkableAxis, (int)walkableFace) &&
                 nodeCompn.ScreenSpacePosition == WorldToScreen(nodeCentre))
             {
                 originNodes.Add(nodeCompn);
@@ -339,7 +394,7 @@ public class Node : MonoBehaviour
             foreach (var node in originNodes)
             {
                 ConnecPoint adjConnec = CheckUpWalkable(node, adjNodePos);
-                if (adjConnec != 0) result.Add(new AdjNode(adjConnec, node));
+                if (adjConnec != 0) result.Add(new AdjNode(adjConnec, WalkableAxis.Up, node));
             }
             return result;
         }
@@ -405,32 +460,16 @@ public class Node : MonoBehaviour
         _adjPoints |= connecType;  // Add adjPoint
         foreach (AdjNode adjNodeToAdd in adjNodes)
         {
-            m_adjNodes[connecType][adjNodeToAdd.m_adjNode] = adjNodeToAdd.m_adjNodeConnecPoint;
+            if (!m_adjNodes[connecType].Contains(adjNodeToAdd))
+            {
+                m_adjNodes[connecType].Add(adjNodeToAdd);
+            }
         }
     }
     #endregion
 
-    #region Tools
-    // Transform world position into 2D screen position. 
-    // (x_0, y_0, z_0) => (x, 0, z)
-    private Vector3 WorldToScreen(Vector3 worldPosition)
-    {
-        int intY = Mathf.Abs((int)worldPosition.y);
-        for (int i = 0; i < intY; i++)
-        {
-            worldPosition.x += Mathf.Sign(worldPosition.y);
-            worldPosition.z += Mathf.Sign(worldPosition.y);
-        }
-        return new Vector3(worldPosition.x, 0, worldPosition.z);
-    }
 
-    // Since unity don't have System.Enum.HasFlag method,
-    // so I make a simple version of this method.
-    private bool HasFlag(int value, int flag)
-    {
-        return ((value & flag) == 1) ? true : false;
-    }
-
+    #region static functions
 
     /// <summary>
     /// Get a node's adjpoint in world space
@@ -438,7 +477,7 @@ public class Node : MonoBehaviour
     /// <param name="node"></param>
     /// <param name="adjType"></param>
     /// <returns></returns>
-    private Vector3 GetAdjPointPosInWorld(Node node, ConnecPoint adjType)
+    public static Vector3 GetAdjPointPosInWorld(Node node, ConnecPoint adjType)
     {
         if (adjType == ConnecPoint.Upper_X)
             return node.UpperX;
@@ -468,6 +507,168 @@ public class Node : MonoBehaviour
         return Vector3.zero;
     }
 
+    // Transform world position into 2D screen position. 
+    // (x_0, y_0, z_0) => (x, 0, z)
+    public static Vector3 WorldToScreen(Vector3 worldPosition)
+    {
+        int intY = Mathf.Abs((int)worldPosition.y);
+        for (int i = 0; i < intY; i++)
+        {
+            worldPosition.x += Mathf.Sign(worldPosition.y);
+            worldPosition.z += Mathf.Sign(worldPosition.y);
+        }
+        return new Vector3(worldPosition.x, 0, worldPosition.z);
+    }
+
+    // Since unity don't have System.Enum.HasFlag method,
+    // so I make a simple version of this method.
+    public static bool HasFlag(int value, int flag)
+    {
+        return ((value & flag) == flag) ? true : false;
+    }
+
+    /// <summary>
+    /// Get the connect point in specific walk axis
+    /// </summary>                
+    public static Node.ConnecPoint[] GetConnectTypeOnFace(Node.WalkableAxis face)
+    {
+        if (face == Node.WalkableAxis.Up)
+        {
+            return new Node.ConnecPoint[]
+            {
+                Node.ConnecPoint.Upper_X,
+                Node.ConnecPoint.Upper_Z,
+                Node.ConnecPoint.Upper_NX,
+                Node.ConnecPoint.Upper_NZ
+            };
+        }
+
+        if (face == Node.WalkableAxis.Down)
+        {
+            return new Node.ConnecPoint[]
+            {
+                Node.ConnecPoint.Down_X,
+                Node.ConnecPoint.Down_Z,
+                Node.ConnecPoint.Down_NX,
+                Node.ConnecPoint.Down_NZ
+            };
+        }
+
+        if (face == Node.WalkableAxis.Left)
+        {
+            return new Node.ConnecPoint[]
+            {
+                Node.ConnecPoint.Upper_NX,
+                Node.ConnecPoint.Down_NX,
+                Node.ConnecPoint.Middle_NXNZ,
+                Node.ConnecPoint.Middle_NXZ
+            };
+        }
+
+        if (face == Node.WalkableAxis.Right)
+        {
+            return new Node.ConnecPoint[]
+            {
+                Node.ConnecPoint.Upper_X,
+                Node.ConnecPoint.Down_X,
+                Node.ConnecPoint.Middle_XNZ,
+                Node.ConnecPoint.Middle_XZ
+            };
+        }
+
+        if (face == Node.WalkableAxis.Forward)
+        {
+            return new Node.ConnecPoint[]
+            {
+                Node.ConnecPoint.Upper_Z,
+                Node.ConnecPoint.Down_Z,
+                Node.ConnecPoint.Middle_NXZ,
+                Node.ConnecPoint.Middle_XZ
+            };
+        }
+
+        if (face == Node.WalkableAxis.Back)
+        {
+            return new Node.ConnecPoint[]
+            {
+                Node.ConnecPoint.Upper_NZ,
+                Node.ConnecPoint.Down_NZ,
+                Node.ConnecPoint.Middle_NXNZ,
+                Node.ConnecPoint.Middle_XNZ
+            };
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Get the connect point in specific walk axis
+    /// </summary>    
+    public static Node.ConnecPoint[] GetConnectTypeOnFace(string faceName)
+    {
+        faceName = faceName.ToLower();
+
+        if (faceName == "up")
+            return GetConnectTypeOnFace(WalkableAxis.Up);
+        if (faceName == "down")
+            return GetConnectTypeOnFace(WalkableAxis.Down);
+        if (faceName == "right")
+            return GetConnectTypeOnFace(WalkableAxis.Right);
+        if (faceName == "left")
+            return GetConnectTypeOnFace(WalkableAxis.Left);
+        if (faceName == "forward")
+            return GetConnectTypeOnFace(WalkableAxis.Forward);
+        if (faceName == "back")
+            return GetConnectTypeOnFace(WalkableAxis.Back);
+
+        return null;
+    }
+
+    #endregion
+
+
+    // Init anchor child for path find
+    private void InitAnchor()
+    {
+        GameObject temple = new GameObject();
+        temple.transform.rotation = Quaternion.identity;
+
+        foreach (var point in PointsIterator)
+        {
+            var go = Instantiate(temple, transform);
+            go.transform.position = point.Value;
+            go.name = point.Key;
+        }
+        Destroy(temple);
+
+        m_hasInitAnchor = true;
+    }
+
+    public bool m_hasInitAnchor = false;
+    private void Start()
+    {
+        m_adjNodes = new Dictionary<ConnecPoint, List<AdjNode>>();
+        foreach (ConnecPoint connecPointType in System.Enum.GetValues(typeof(ConnecPoint)))
+        {
+            m_adjNodes.Add(connecPointType, new List<AdjNode>());
+        }
+
+        if (m_hasInitAnchor == false && m_walkableAxis != 0)
+            InitAnchor();
+    }
+
+    private float nextTime = 0;
+    private void Update()
+    {
+        if (Time.time > nextTime)
+        {
+            AutoFindAdjPoint();
+            nextTime = Time.time + 0.1f;
+            Debug.Log("Update");
+        }
+    }
+
+
     private void OnDrawGizmos()
     {
         float sphereSize = 0.15f;
@@ -475,37 +676,37 @@ public class Node : MonoBehaviour
 
         // Draw the walkable node
         Gizmos.color = Color.blue;
-        if (HasFlag((int)m_walkableAxis, (int)WalkableAxis.Up))
+        if (UpWalkable)
         {
             Gizmos.DrawSphere(Up, sphereSize);
             Gizmos.DrawLine(UpperX, UpperNX);
             Gizmos.DrawLine(UpperZ, UpperNZ);
         }
-        if (HasFlag((int)m_walkableAxis, (int)WalkableAxis.Down))
+        if (DownWalkable)
         {
             Gizmos.DrawSphere(Down, sphereSize);
             Gizmos.DrawLine(DownX, DownNZ);
             Gizmos.DrawLine(DownZ, DownNZ);
         }
-        if (HasFlag((int)m_walkableAxis, (int)WalkableAxis.Right))
+        if (RightWalkable)
         {
             Gizmos.DrawSphere(Right, sphereSize);
             Gizmos.DrawLine(MiddleXZ, MiddleXNZ);
             Gizmos.DrawLine(UpperX, DownX);
         }
-        if (HasFlag((int)m_walkableAxis, (int)WalkableAxis.Left))
+        if (LeftWalkable)
         {
             Gizmos.DrawSphere(Left, sphereSize);
             Gizmos.DrawLine(MiddleNXZ, MiddleNXNZ);
             Gizmos.DrawLine(UpperNX, DownNX);
         }
-        if (HasFlag((int)m_walkableAxis, (int)WalkableAxis.Forward))
+        if (ForwardWalkable)
         {
             Gizmos.DrawSphere(Forward, sphereSize);
             Gizmos.DrawLine(MiddleXZ, MiddleNXZ);
             Gizmos.DrawLine(UpperZ, DownZ);
         }
-        if (HasFlag((int)m_walkableAxis, (int)WalkableAxis.Back))
+        if (BackWalkable)
         {
             Gizmos.DrawSphere(Back, sphereSize);
             Gizmos.DrawLine(MiddleXNZ, MiddleNXNZ);
@@ -531,51 +732,9 @@ public class Node : MonoBehaviour
 
             foreach (var endNode in line.Value)
             {
-                Gizmos.DrawLine(start, GetAdjPointPosInWorld(endNode.Key, endNode.Value));
+                Gizmos.DrawLine(start, GetAdjPointPosInWorld(
+                    endNode.m_adjNode, endNode.m_adjNodeConnecPoint));
             }
-        }
-    }
-    #endregion
-
-
-    // Init anchor child for path find
-    private void InitAnchor()
-    {
-        GameObject temple = new GameObject();
-        temple.transform.rotation = Quaternion.identity;
-
-        foreach (var point in PointsIterator)
-        {
-            var go = Instantiate(temple, transform);
-            go.transform.position = point.Value;
-            go.name = point.Key;
-        }
-        Destroy(temple);
-        
-        m_hasInitAnchor = true;
-    }
-
-    public bool m_hasInitAnchor = false;
-    private void Start()
-    {
-        m_adjNodes = new Dictionary<ConnecPoint, Dictionary<Node, ConnecPoint>>();
-        foreach (ConnecPoint connecPointType in System.Enum.GetValues(typeof(ConnecPoint)))
-        {
-            m_adjNodes.Add(connecPointType, new Dictionary<Node, ConnecPoint>());
-        }
-
-        if(m_hasInitAnchor == false && m_walkableAxis != 0)
-            InitAnchor();
-    }
-
-    private float nextTime = 0;
-    private void Update()
-    {
-        if (Time.time > nextTime)
-        {
-            AutoFindAdjPoint();
-            nextTime = Time.time + 2f;
-            Debug.Log("Update");
         }
     }
 
@@ -584,12 +743,21 @@ public class Node : MonoBehaviour
     public class AdjNode
     {
         public ConnecPoint m_adjNodeConnecPoint;
+        public WalkableAxis m_adjWalkAxis;
         public Node m_adjNode;
 
-        public AdjNode(ConnecPoint adjConnecPoint, Node adjNode)
+        public AdjNode(ConnecPoint adjConnecPoint, WalkableAxis adjWalkAxis, Node adjNode)
         {
             m_adjNodeConnecPoint = adjConnecPoint;
+            m_adjWalkAxis = adjWalkAxis;
             m_adjNode = adjNode;
+        }
+
+        public override bool Equals(object obj)
+        {
+            return (((AdjNode)obj).m_adjNodeConnecPoint == m_adjNodeConnecPoint) &&
+                   (((AdjNode)obj).m_adjNode == m_adjNode) &&
+                   (((AdjNode)obj).m_adjWalkAxis == m_adjWalkAxis);
         }
     }
 
