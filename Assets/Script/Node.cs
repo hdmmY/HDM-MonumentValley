@@ -9,7 +9,7 @@ public class Node : MonoBehaviour
     private Camera _camera;
 
     private Dictionary<string, Transform> _childTransform;
-
+   
     #region public properties         
     // The node's position in camera space
     public Vector3 CameraSpacePosition
@@ -251,35 +251,45 @@ public class Node : MonoBehaviour
         }
     }
 
+    #endregion
+
+    #region Iterator
+    /// <summary>
+    /// Contain all node's world poin for iterator
+    /// </summary>
+    public IEnumerable<KeyValuePair<string, Vector3>> GetChildTransform()
+    {
+        yield return new KeyValuePair<string, Vector3>("Up", Up);
+        yield return new KeyValuePair<string, Vector3>("Down", Down);
+        yield return new KeyValuePair<string, Vector3>("Left", Left);
+        yield return new KeyValuePair<string, Vector3>("Right", Right);
+        yield return new KeyValuePair<string, Vector3>("Forward", Forward);
+        yield return new KeyValuePair<string, Vector3>("Back", Back);
+        yield return new KeyValuePair<string, Vector3>("Upper_X", UpperX);
+        yield return new KeyValuePair<string, Vector3>("Upper_NX", UpperNX);
+        yield return new KeyValuePair<string, Vector3>("Upper_Z", UpperZ);
+        yield return new KeyValuePair<string, Vector3>("Upper_NZ", UpperNZ);
+        yield return new KeyValuePair<string, Vector3>("Middle_XZ", MiddleXZ);
+        yield return new KeyValuePair<string, Vector3>("Middle_NXZ", MiddleNXZ);
+        yield return new KeyValuePair<string, Vector3>("Middle_XNZ", MiddleXNZ);
+        yield return new KeyValuePair<string, Vector3>("Middle_NXNZ", MiddleNXNZ);
+        yield return new KeyValuePair<string, Vector3>("Down_X", DownX);
+        yield return new KeyValuePair<string, Vector3>("Down_NX", DownNX);
+        yield return new KeyValuePair<string, Vector3>("Down_Z", DownZ);
+        yield return new KeyValuePair<string, Vector3>("Down_NZ", DownNZ);
+    }
 
     /// <summary>
-    /// Contain all node's poins for iterator
+    /// Contain all node's world normal for iterator
     /// </summary>
-    private Dictionary<string, Vector3> PointsIterator
+    public IEnumerable<KeyValuePair<string, Vector3>> GetChildNormal()
     {
-        get
-        {
-            var result = new Dictionary<string, Vector3>();
-            result.Add("Up", Up);
-            result.Add("Down", Down);
-            result.Add("Left", Left);
-            result.Add("Right", Right);
-            result.Add("Forward", Forward);
-            result.Add("Back", Back);
-            result.Add("Upper_X", UpperX);
-            result.Add("Upper_NX", UpperNX);
-            result.Add("Upper_Z", UpperZ);
-            result.Add("Upper_NZ", UpperNZ);
-            result.Add("Middle_XZ", MiddleXZ);
-            result.Add("Middle_NXZ", MiddleNXZ);
-            result.Add("Middle_XNZ", MiddleXNZ);
-            result.Add("Middle_NXNZ", MiddleNXNZ);
-            result.Add("Down_X", DownX);
-            result.Add("Down_NX", DownNX);
-            result.Add("Down_Z", DownZ);
-            result.Add("Down_NZ", DownNZ);
-            return result;
-        }
+        yield return new KeyValuePair<string, Vector3>("Up", transform.up);
+        yield return new KeyValuePair<string, Vector3>("Down", -1 * transform.up);
+        yield return new KeyValuePair<string, Vector3>("Right", transform.right);
+        yield return new KeyValuePair<string, Vector3>("Left", -1 * transform.right);
+        yield return new KeyValuePair<string, Vector3>("Forward", transform.forward);
+        yield return new KeyValuePair<string, Vector3>("Back", -1 * transform.forward);
     }
 
     #endregion
@@ -314,7 +324,7 @@ public class Node : MonoBehaviour
         Down_Z = 1024,
         Down_NZ = 2048
     };
-    [HideInInspector] public ConnecPoint _adjPoints;
+    [HideInInspector] public ConnecPoint m_adjPoints;
 
 
     [System.Flags]
@@ -328,6 +338,7 @@ public class Node : MonoBehaviour
 
     public Dictionary<ConnecPoint, List<AdjNodeInfo>> m_adjNodes;
     #endregion
+
 
     #region Public method
     public void AutoFindAdjPoint()
@@ -349,13 +360,13 @@ public class Node : MonoBehaviour
 
     public Transform FindConnectTrans(Node ajdNode)
     {
-        foreach (var adjNodeInfos in m_adjNodes.Values)
+        foreach (var adjNodeInfoPairs in m_adjNodes)
         {
-            foreach (var adjNodeInfo in adjNodeInfos)
+            foreach (var adjNodeInfo in adjNodeInfoPairs.Value)
             {
                 if (adjNodeInfo.m_adjNode == ajdNode)
                 {
-                    return _childTransform[adjNodeInfo.m_adjNodeConnecPoint.ToString()];
+                    return _childTransform[adjNodeInfoPairs.Key.ToString()];
                 }
             }
         }
@@ -376,6 +387,20 @@ public class Node : MonoBehaviour
     public Transform GetTransByConnectPoint(ConnecPoint connec)
     {
         return _childTransform[connec.ToString()];
+    }
+
+    public Vector3 GetWorldNormalByAxisName(string name)
+    {
+        name = name.ToLower();
+
+        if (name == "up") return transform.up;
+        if (name == "down") return -1 * transform.up;
+        if (name == "right") return transform.right;
+        if (name == "left") return -1 * transform.right;
+        if (name == "forward") return transform.forward;
+        if (name == "back") return -1 * transform.forward;
+
+        return Vector3.zero;
     }
 
     #endregion
@@ -482,12 +507,12 @@ public class Node : MonoBehaviour
         // Delete adjPoint
         if (adjNodes == null || adjNodes.Count == 0)
         {
-            _adjPoints &= ~connecType;
+            m_adjPoints &= ~connecType;
             m_adjNodes[connecType].Clear();
             return;
         }
 
-        _adjPoints |= connecType;  // Add adjPoint
+        m_adjPoints |= connecType;  // Add adjPoint
         foreach (AdjNodeInfo adjNodeToAdd in adjNodes)
         {
             if (!m_adjNodes[connecType].Contains(adjNodeToAdd))
@@ -681,20 +706,23 @@ public class Node : MonoBehaviour
         GameObject temple = new GameObject();
         temple.transform.rotation = Quaternion.identity;
 
-        foreach (var point in PointsIterator)
+        foreach (var pair in GetChildTransform())
         {
+            if(transform.Find(pair.Key))
+            {
+                _childTransform.Add(pair.Key, transform.Find(pair.Key));
+                continue;
+            }
             var go = Instantiate(temple, transform);
-            go.transform.position = point.Value;
-            go.name = point.Key;
+            go.transform.position = pair.Value;
+            go.transform.up = GetWorldNormalByAxisName(pair.Key);
+            go.name = pair.Key;
             _childTransform.Add(go.name, go.transform);
         }
         Destroy(temple);
-
-        m_hasInitAnchor = true;
     }
 
-    public bool m_hasInitAnchor = false;
-    private void Start()
+    private void OnEnable()
     {
         m_adjNodes = new Dictionary<ConnecPoint, List<AdjNodeInfo>>();
         foreach (ConnecPoint connecPointType in System.Enum.GetValues(typeof(ConnecPoint)))
@@ -702,8 +730,7 @@ public class Node : MonoBehaviour
             m_adjNodes.Add(connecPointType, new List<AdjNodeInfo>());
         }
 
-        if (m_hasInitAnchor == false && m_walkableAxis != 0)
-            InitAnchor();
+        InitAnchor();
     }
 
     private float nextTime = 0;
@@ -713,7 +740,6 @@ public class Node : MonoBehaviour
         {
             AutoFindAdjPoint();
             nextTime = Time.time + 0.1f;
-            Debug.Log("Update");
         }
     }
 
@@ -767,7 +793,7 @@ public class Node : MonoBehaviour
         Gizmos.color = Color.green;
         foreach (ConnecPoint adjPoint in System.Enum.GetValues(typeof(ConnecPoint)))
         {
-            if ((_adjPoints & adjPoint) == adjPoint)
+            if ((m_adjPoints & adjPoint) == adjPoint)
                 Gizmos.DrawCube(GetAdjPointPosInWorld(this, adjPoint), Vector3.one * cubeSize);
         }
 

@@ -26,6 +26,9 @@ public class NodeEditor : Editor
         nodeScript.m_walkableAxis = (Node.WalkableAxis)EditorGUILayout.EnumMaskField
                         ("WakableAxis", nodeScript.m_walkableAxis);
 
+        nodeScript.m_adjPoints = (Node.ConnecPoint)EditorGUILayout.EnumMaskField
+                        ("ConnectPoint", nodeScript.m_adjPoints);
+
         EditorGUILayout.Space();
         EditorGUILayout.Space();
 
